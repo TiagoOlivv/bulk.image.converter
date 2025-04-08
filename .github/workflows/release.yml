@@ -1,0 +1,80 @@
+name: Build and Release
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pyinstaller
+
+      - name: Build EXE
+        run: pyinstaller --noconfirm --onefile --windowed main.py --name bulk_image_converter
+
+      - name: Upload .exe to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/bulk_image_converter.exe
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ruby ruby-dev build-essential
+          sudo gem install --no-document fpm
+          pip install -r requirements.txt pyinstaller
+
+      - name: Build binary
+        run: pyinstaller --noconfirm --onefile --windowed main.py --name bulk-image-converter
+
+      - name: Create .deb package
+        run: fpm -s dir -t deb -n bulk-image-converter -v 1.0 dist/bulk-image-converter=/usr/local/bin/bulk-image-converter
+
+      - name: Upload .deb to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: bulk-image-converter_1.0_amd64.deb
+
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt py2app
+
+      - name: Setup py2app
+        run: |
+          echo "from setuptools import setup
+APP = ['main.py']
+OPTIONS = {'argv_emulation': True, 'packages': ['PIL']}
+setup(app=APP, options={'py2app': OPTIONS}, setup_requires=['py2app'])" > setup.py
+
+      - name: Build .app
+        run: python setup.py py2app
+
+      - name: Create .dmg
+        run: hdiutil create dist/bulk-image-converter.dmg -volname "BulkImageConverter" -srcfolder dist/bulk.image.converter.app
+
+      - name: Upload .dmg to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/bulk-image-converter.dmg

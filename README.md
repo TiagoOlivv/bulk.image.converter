@@ -38,5 +38,13 @@ make run
 make clean
 ```
 
+### 5. Build for different platforms
+
+```bash
+make build-win
+make build-linux
+make build-mac
+```
+
 ---
 
