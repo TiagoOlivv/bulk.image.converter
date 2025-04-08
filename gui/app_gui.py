@@ -5,13 +5,24 @@ import threading
 import os
 import platform
 import subprocess
+from utils.logger import logger
+import time
 
+def format_time(seconds):
+    if seconds < 60:
+        return f"{seconds:.0f} seconds"
+    elif seconds < 3600:
+        minutes = seconds / 60
+        return f"{minutes:.1f} minutes"
+    else:
+        hours = seconds / 3600
+        return f"{hours:.1f} hours"
 
 def run_app():
     root = tk.Tk()
     root.title("Bulk Image Converter")
-    root.geometry("500x330")
-    root.minsize(400, 250)
+    root.geometry("400x320")
+    root.minsize(400, 320)
     root.resizable(False, False)
 
     input_var = tk.StringVar()
@@ -19,16 +30,20 @@ def run_app():
     format_var = tk.StringVar(value="webp")
     width_var = tk.StringVar(value="1024")
     quality_var = tk.StringVar(value="75")
+    status_var = tk.StringVar(value="Ready")
+    time_remaining_var = tk.StringVar(value="")
 
     def browse_input():
         path = filedialog.askdirectory()
         if path:
             input_var.set(path)
+            logger.info(f"Selected input directory: {path}")
 
     def browse_output():
         path = filedialog.askdirectory()
         if path:
             output_var.set(path)
+            logger.info(f"Selected output directory: {path}")
 
     def open_output_folder(path):
         if platform.system() == "Windows":
@@ -40,6 +55,7 @@ def run_app():
 
     def threaded_conversion():
         try:
+            logger.info("Starting conversion process")
             convert_images(
                 input_var.get(),
                 output_var.get(),
@@ -50,18 +66,24 @@ def run_app():
             )
             progress_bar["value"] = 100
             start_btn["text"] = "Done"
+            status_var.set("Conversion completed successfully!")
+            logger.info("Conversion completed successfully")
             messagebox.showinfo("Success", "Conversion completed successfully!")
             open_output_folder(output_var.get())
         except Exception as e:
-            messagebox.showerror("Error", f"Error during conversion:\n{str(e)}")
+            error_msg = f"Error during conversion:\n{str(e)}"
+            logger.error(error_msg)
+            messagebox.showerror("Error", error_msg)
             start_btn["text"] = "Start Conversion"
         finally:
             start_btn["state"] = "normal"
+            time_remaining_var.set("")
 
     def start_conversion():
         start_btn["state"] = "disabled"
         start_btn["text"] = "Converting..."
         progress_bar["value"] = 0
+        status_var.set("Starting conversion...")
         threading.Thread(target=threaded_conversion, daemon=True).start()
 
     def validate_numeric(value):
@@ -92,8 +114,11 @@ def run_app():
 
         start_btn["state"] = "normal" if valid else "disabled"
 
-    def update_progress(percent):
+    def update_progress(percent, estimated_remaining):
         progress_bar["value"] = percent
+        status_var.set(f"Processing: {percent}%")
+        if estimated_remaining > 0:
+            time_remaining_var.set(f"Estimated time remaining: {format_time(estimated_remaining)}")
         root.update_idletasks()
 
     style = ttk.Style()
@@ -138,8 +163,14 @@ def run_app():
     progress_bar = ttk.Progressbar(frame, orient="horizontal", mode="determinate", maximum=100)
     progress_bar.grid(row=5, column=0, columnspan=3, sticky="we", pady=(5, 5))
 
+    status_label = ttk.Label(frame, textvariable=status_var)
+    status_label.grid(row=6, column=0, columnspan=3, sticky="w", pady=(5, 0))
+
+    time_remaining_label = ttk.Label(frame, textvariable=time_remaining_var)
+    time_remaining_label.grid(row=7, column=0, columnspan=3, sticky="w", pady=(0, 5))
+
     start_btn = ttk.Button(frame, text="Start Conversion", command=start_conversion)
-    start_btn.grid(row=6, column=0, columnspan=3, pady=10)
+    start_btn.grid(row=8, column=0, columnspan=3, pady=10)
     start_btn["state"] = "disabled"
 
     frame.columnconfigure(0, weight=1)
