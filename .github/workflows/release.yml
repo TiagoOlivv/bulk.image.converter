@@ -9,6 +9,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
@@ -28,6 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
@@ -54,6 +56,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
@@ -61,18 +64,30 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt py2app
 
-      - name: Setup py2app
+      - name: Create setup.py
         run: |
-          echo "from setuptools import setup
-APP = ['main.py']
-OPTIONS = {'argv_emulation': True, 'packages': ['PIL']}
-setup(app=APP, options={'py2app': OPTIONS}, setup_requires=['py2app'])" > setup.py
+          echo "from setuptools import setup" > setup.py
+          echo "" >> setup.py
+          echo "APP = ['main.py']" >> setup.py
+          echo "OPTIONS = {" >> setup.py
+          echo "    'argv_emulation': True," >> setup.py
+          echo "    'packages': ['PIL']" >> setup.py
+          echo "}" >> setup.py
+          echo "" >> setup.py
+          echo "setup(" >> setup.py
+          echo "    app=APP," >> setup.py
+          echo "    options={'py2app': OPTIONS}," >> setup.py
+          echo "    setup_requires=['py2app']," >> setup.py
+          echo ")" >> setup.py
 
       - name: Build .app
         run: python setup.py py2app
 
       - name: Create .dmg
-        run: hdiutil create dist/bulk-image-converter.dmg -volname "BulkImageConverter" -srcfolder dist/bulk.image.converter.app
+        run: |
+          mkdir -p dist/dmg
+          cp -R dist/*.app dist/dmg/
+          hdiutil create dist/bulk-image-converter.dmg -volname "BulkImageConverter" -srcfolder dist/dmg
 
       - name: Upload .dmg to Release
         uses: softprops/action-gh-release@v1
