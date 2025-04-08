@@ -4,14 +4,14 @@ A simple way to convert and resize entire image folders with a desktop GUI.
 
 ---
 
-## ✅ Requirements
+## Requirements
 
 - Python 3.8+
 - Unix-based system or Windows with `make` (or run commands manually)
 
 ---
 
-## ▶️ Quick Start
+## Quick Start
 
 ### 1. Clone the project and enter the folder
 
